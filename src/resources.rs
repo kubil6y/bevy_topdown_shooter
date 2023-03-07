@@ -1,10 +1,65 @@
 use bevy::prelude::*;
 
+#[derive(Resource, Debug)]
+pub struct PlayerState {
+    pub health: i32,
+    pub golds: i32,
+    pub score: i32,
+    pub is_alive: bool,
+    pub death_sound_played: bool,
+}
+
+impl PlayerState {
+    pub fn decrement_health(&mut self) {
+        if self.is_alive {
+            self.health -= 1;
+            if self.health <= 0 {
+                self.die()
+            }
+        }
+    }
+
+    pub fn spawn(&mut self) {
+        *self = Self {
+            is_alive: true,
+            ..Default::default()
+        }
+    }
+
+    pub fn die(&mut self) {
+        self.is_alive = false;
+    }
+
+    pub fn increment_gold(&mut self) {
+        self.golds += 1;
+    }
+
+    pub fn increment_score(&mut self) {
+        self.score += 1;
+    }
+}
+
+impl Default for PlayerState {
+    fn default() -> Self {
+        Self {
+            is_alive: false,
+            health: 3,
+            golds: 0,
+            score: 0,
+            death_sound_played: false,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct EnemyCount(pub i32);
+
 #[derive(Resource)]
 pub struct GameTextures {
     pub player: Handle<Image>,
     pub laser_player: Handle<Image>,
     pub laser_enemy: Handle<Image>,
+    pub enemy: Handle<Image>,
 }
 
 #[derive(Resource)]
@@ -30,7 +85,6 @@ impl WindowSize {
     }
 }
 
-// TODO: remove this
 #[derive(Resource)]
 pub struct GameState {
     pub is_debug: bool,

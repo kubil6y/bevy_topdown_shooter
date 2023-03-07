@@ -1,24 +1,36 @@
 use crate::prelude::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, time::FixedTimestep};
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_player_system)
-            .add_event::<PlayerLaserFireEvent>()
+        app.insert_resource(PlayerState::default())
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(FixedTimestep::step(0.5))
+                    .with_system(spawn_player_system),
+            )
             .add_system(player_movement_system)
             .add_system(player_input_system)
-            .add_system(spawn_player_laser_system);
+            .add_system(spawn_player_laser_system)
+            .add_system(handle_player_take_hit_event)
+            .add_system(log_player_state)
+            .add_event::<PlayerLaserFireEvent>();
     }
 }
 
 fn spawn_player_system(
     mut commands: Commands,
+    mut player_state: ResMut<PlayerState>,
     game_textures: Res<GameTextures>,
     window_size: Res<WindowSize>,
 ) {
-    let (px, py) = (0., -window_size.height * 3. / 4.);
+    if player_state.is_alive {
+        return;
+    }
+
+    let (px, py) = (0., -window_size.height * 1. / 4.);
     commands.spawn((
         SpriteBundle {
             texture: game_textures.player.clone(),
@@ -33,13 +45,20 @@ fn spawn_player_system(
         Collision::from(SIZE_PLAYER_SHIP),
         Velocity::default(),
     ));
+
+    player_state.spawn();
 }
 
 fn player_input_system(
+    player_state: Res<PlayerState>,
     keyboard: Res<Input<KeyCode>>,
     mut laser_fire_event: EventWriter<PlayerLaserFireEvent>,
     mut query: Query<(&mut Velocity, &Transform), With<Player>>,
 ) {
+    if !player_state.is_alive {
+        return;
+    }
+
     if let Ok((mut velocity, tf)) = query.get_single_mut() {
         velocity.0.x = if keyboard.pressed(KeyCode::S) {
             -1.
@@ -122,7 +141,40 @@ fn spawn_player_laser_system(
             FromPlayer,
             Movable { auto_despawn: true },
             Collision::from(SIZE_LASER_PLAYER),
-            Velocity(Vec2::new(0., 1.)),
+            Velocity(Vec2::new(0., 1.5)),
         ));
     }
+}
+
+fn handle_player_take_hit_event(
+    mut commands: Commands,
+    mut player_state: ResMut<PlayerState>,
+    mut take_hit_events: EventReader<PlayerTakeHitEvent>,
+    mut query: Query<(Entity, &mut Transform), With<Player>>,
+    window_size: Res<WindowSize>,
+    audio_assets: Res<AudioAssets>,
+    audio: Res<Audio>,
+) {
+    for _ in take_hit_events.iter() {
+        player_state.decrement_health();
+
+        if player_state.is_alive {
+            audio.play(audio_assets.hit.clone());
+        } else {
+            if !player_state.death_sound_played {
+                audio.play(audio_assets.death.clone());
+                player_state.death_sound_played = true;
+                if let Ok((entity, mut tf)) = query.get_single_mut() {
+                    let (px, py) = (0., -window_size.height * 1. / 4.);
+                    tf.translation = Vec3::new(px, py, 99.);
+                    commands.entity(entity).despawn_recursive();
+                    player_state.is_alive = false;
+                }
+            }
+        }
+    }
+}
+
+fn log_player_state(player_state: Res<PlayerState>) {
+    println!("{:?}", player_state); // TODO
 }

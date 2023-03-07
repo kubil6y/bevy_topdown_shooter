@@ -1,20 +1,20 @@
 use crate::prelude::*;
 use bevy::prelude::*;
-use camera::MyCameraPlugin;
+use enemy::EnemyPlugin;
 use player::PlayerPlugin;
 
-mod camera;
 mod components;
 mod constants;
 mod enemy;
+mod events;
 mod player;
 mod prelude;
 mod resources;
 mod shared;
-mod events;
 
 fn main() {
     App::new()
+        .insert_resource(ClearColor(BACKGROUND_COLOR))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "Topdown Shooter".to_owned(),
@@ -24,13 +24,12 @@ fn main() {
             },
             ..default()
         }))
-        .add_system_set_to_stage(
-            CoreStage::First,
+        .add_startup_system_set_to_stage(
+            StartupStage::PreStartup,
             SystemSet::new().with_system(setup),
         )
-        .insert_resource(ClearColor(BACKGROUND_COLOR))
+        .add_plugin(EnemyPlugin)
         .add_plugin(PlayerPlugin)
-        .add_plugin(MyCameraPlugin)
         .add_plugin(SharedPlugin)
         .run();
 }
@@ -40,6 +39,7 @@ fn setup(
     mut windows: ResMut<Windows>,
     asset_server: Res<AssetServer>,
 ) {
+    commands.spawn(Camera2dBundle::default());
     commands.insert_resource(GameState::default());
 
     // get window size as resource
@@ -52,6 +52,7 @@ fn setup(
         player: asset_server.load(SPRITE_PLAYER_SHIP),
         laser_player: asset_server.load(SPRITE_LASER_PLAYER),
         laser_enemy: asset_server.load(SPRITE_LASER_ENEMY),
+        enemy: asset_server.load(SPRITE_ENEMY_SHIP),
     };
     commands.insert_resource(game_textures);
 

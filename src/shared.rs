@@ -22,34 +22,20 @@ pub fn movement_system(
 
 pub fn auto_despawner_system(
     mut commands: Commands,
-    query: Query<(Entity, &Transform, &Collision, &Movable)>,
+    query: Query<(Entity, &Transform, &Collision, &Movable), Without<Enemy>>,
     window_size: Res<WindowSize>,
 ) {
     for (entity, tf, collision, movable) in query.iter() {
-        if movable.auto_despawn {
-            if check_out_of_bounds(
-                tf.translation,
-                collision.0,
-                Vec2::new(window_size.width, window_size.height),
-            ) {
-                commands.entity(entity).despawn_recursive();
-            }
+        if movable.auto_despawn
+            && (tf.translation.x + collision.0.x / 2. > window_size.width / 2.
+                || tf.translation.x - collision.0.x / 2.
+                    < -window_size.width / 2.
+                || tf.translation.y + collision.0.y / 2.
+                    > window_size.height / 2.
+                || tf.translation.y + collision.0.y / 2.
+                    < -window_size.height / 2.)
+        {
+            commands.entity(entity).despawn_recursive();
         }
-    }
-}
-
-pub fn check_out_of_bounds(
-    translation: Vec3,
-    box_size: Vec2,
-    window_size: Vec2,
-) -> bool {
-    if translation.x + box_size.x / 2. > window_size.x / 2.
-        || translation.x - box_size.x / 2. < -window_size.x / 2.
-        || translation.y + box_size.y / 2. > window_size.y / 2.
-        || translation.y - box_size.y / 2. < -window_size.y / 2.
-    {
-        true
-    } else {
-        false
     }
 }
