@@ -8,3 +8,9 @@ pub struct EnemyLaserFireEvent(pub Vec2);
 
 #[derive(Default)]
 pub struct PlayerTakeHitEvent;
+
+#[derive(Debug)]
+pub struct EnemyTakeHitEvent(pub Entity, pub Vec3);
+
+#[derive(Debug)]
+pub struct ExplosionEvent(pub Vec2);

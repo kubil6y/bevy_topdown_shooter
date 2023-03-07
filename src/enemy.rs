@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::prelude::*;
 use bevy::{prelude::*, time::FixedTimestep};
 use rand::{thread_rng, Rng};
@@ -12,10 +14,12 @@ impl Plugin for EnemyPlugin {
                     .with_run_criteria(FixedTimestep::step(1.))
                     .with_system(spawn_enemy_system),
             )
-            .add_event::<EnemyLaserFireEvent>()
-            .add_event::<PlayerTakeHitEvent>()
             .add_system(spawn_enemy_laser_system)
-            .add_system(handle_enemy_out_of_bounds_system);
+            .add_system(handle_enemy_out_of_bounds_system)
+            .add_system(handle_enemy_take_hit_system)
+            .add_event::<EnemyLaserFireEvent>()
+            .add_event::<EnemyTakeHitEvent>()
+            .add_event::<PlayerTakeHitEvent>();
     }
 }
 
@@ -50,7 +54,7 @@ fn spawn_enemy_system(
         Enemy,
         Collision::from(SIZE_ENEMY_SHIP),
         Movable { auto_despawn: true },
-        Velocity(Vec2::new(0., -0.3)), //  -.1
+        Velocity(Vec2::new(0., -0.1)), //  -.1
     ));
 
     enemy_count.0 += 1;
@@ -72,5 +76,23 @@ fn handle_enemy_out_of_bounds_system(
             commands.entity(entity).despawn_recursive();
             enemy_count.0 -= 1;
         }
+    }
+}
+
+fn handle_enemy_take_hit_system(
+    mut commands: Commands,
+    mut enemy_count: ResMut<EnemyCount>,
+    mut take_hit_events: EventReader<EnemyTakeHitEvent>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
+) {
+    let mut despawned: HashSet<Entity> = HashSet::new();
+    for event in take_hit_events.iter() {
+        if despawned.contains(&event.0) {
+            continue;
+        }
+        explosion_event.send(ExplosionEvent(Vec2::new(event.1.x, event.1.y)));
+        commands.entity(event.0).despawn_recursive();
+        enemy_count.0 -= 1;
+        despawned.insert(event.0);
     }
 }

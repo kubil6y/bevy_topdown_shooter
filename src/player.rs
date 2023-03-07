@@ -1,5 +1,8 @@
 use crate::prelude::*;
-use bevy::{prelude::*, time::FixedTimestep};
+use bevy::{
+    prelude::*, sprite::collide_aabb::collide, time::FixedTimestep,
+    utils::HashSet,
+};
 
 pub struct PlayerPlugin;
 
@@ -14,8 +17,9 @@ impl Plugin for PlayerPlugin {
             .add_system(player_movement_system)
             .add_system(player_input_system)
             .add_system(spawn_player_laser_system)
+            .add_system(player_laser_hit_enemies)
             .add_system(handle_player_take_hit_event)
-            .add_system(log_player_state)
+            .add_system(log_player_state) // TODO REMOVE
             .add_event::<PlayerLaserFireEvent>();
     }
 }
@@ -116,12 +120,12 @@ fn player_movement_system(
 
 fn spawn_player_laser_system(
     mut commands: Commands,
-    mut events: EventReader<PlayerLaserFireEvent>,
+    mut player_laser_fire_events: EventReader<PlayerLaserFireEvent>,
     audio_assets: Res<AudioAssets>,
     game_textures: Res<GameTextures>,
     audio: Res<Audio>,
 ) {
-    for event in events.iter() {
+    for event in player_laser_fire_events.iter() {
         audio.play(audio_assets.player_shoot.clone());
         let (laser_x, laser_y) = (
             event.0.x,
@@ -175,6 +179,37 @@ fn handle_player_take_hit_event(
     }
 }
 
+fn player_laser_hit_enemies(
+    mut commands: Commands,
+    mut hit_enemy_event: EventWriter<EnemyTakeHitEvent>,
+    query_player_laser: Query<
+        (Entity, &Transform, &Collision),
+        (With<Laser>, With<FromPlayer>),
+    >,
+    query_enemies: Query<(Entity, &Transform, &Collision), With<Enemy>>,
+) {
+    let mut despawned: HashSet<Entity> = HashSet::new();
+    for (pl_entity, pl_tf, pl_size) in query_player_laser.iter() {
+        if despawned.contains(&pl_entity) {
+            continue;
+        }
+        for (e_entity, e_tf, e_size) in query_enemies.iter() {
+            let collision = collide(
+                pl_tf.translation,
+                pl_size.0,
+                e_tf.translation,
+                e_size.0,
+            );
+            if collision.is_some() {
+                commands.entity(pl_entity).despawn_recursive();
+                despawned.insert(pl_entity);
+                hit_enemy_event
+                    .send(EnemyTakeHitEvent(e_entity, e_tf.translation));
+            }
+        }
+    }
+}
+
 fn log_player_state(player_state: Res<PlayerState>) {
-    println!("{:?}", player_state); // TODO
+    //println!("{:?}", player_state);
 }

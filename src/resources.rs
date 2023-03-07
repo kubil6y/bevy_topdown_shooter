@@ -60,6 +60,7 @@ pub struct GameTextures {
     pub laser_player: Handle<Image>,
     pub laser_enemy: Handle<Image>,
     pub enemy: Handle<Image>,
+    pub explosion: Handle<TextureAtlas>,
 }
 
 #[derive(Resource)]

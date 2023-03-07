@@ -3,6 +3,7 @@ use bevy::prelude::Color;
 pub const BACKGROUND_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const BASE_SPEED: f32 = 300.;
 pub const MAX_ENEMY_COUNT: i32 = 4;
+pub const EXPLOSION_LENGTH: usize = 16;
 
 pub const SPRITE_SCALE: f32 = 1.;
 pub const SPRITE_PLAYER_SHIP: &str = "ships/6.png";
@@ -11,6 +12,8 @@ pub const SPRITE_LASER_PLAYER: &str = "shots/6.png";
 pub const SIZE_LASER_PLAYER: (f32, f32) = (18., 21.);
 pub const SPRITE_LASER_ENEMY: &str = "shots/2.png";
 pub const SIZE_LASER_ENEMY: (f32, f32) = (8., 17.);
+pub const SPRITE_SHEET_EXPLOSION: &str = "effects/explo_a_sheet.png";
+
 
 pub const SPRITE_ENEMY_SHIP: &str = "ships/3.png";
 pub const SIZE_ENEMY_SHIP: (f32, f32) = (46., 45.);

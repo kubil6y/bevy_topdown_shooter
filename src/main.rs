@@ -37,6 +37,7 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut windows: ResMut<Windows>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     asset_server: Res<AssetServer>,
 ) {
     commands.spawn(Camera2dBundle::default());
@@ -47,12 +48,25 @@ fn setup(
     let window_size = WindowSize::new(window.width(), window.height());
     commands.insert_resource(window_size);
 
+    // create explosion texture atlas
+    let texture_handle = asset_server.load(SPRITE_SHEET_EXPLOSION);
+    let texture_atlas = TextureAtlas::from_grid(
+        texture_handle,
+        Vec2::new(64., 64.),
+        4,
+        4,
+        None,
+        None,
+    );
+    let explosion = texture_atlases.add(texture_atlas);
+
     // load game textures
     let game_textures = GameTextures {
         player: asset_server.load(SPRITE_PLAYER_SHIP),
         laser_player: asset_server.load(SPRITE_LASER_PLAYER),
         laser_enemy: asset_server.load(SPRITE_LASER_ENEMY),
         enemy: asset_server.load(SPRITE_ENEMY_SHIP),
+        explosion,
     };
     commands.insert_resource(game_textures);
 
