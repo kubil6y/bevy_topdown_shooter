@@ -3,11 +3,19 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub struct GameTextures {
     pub player: Handle<Image>,
+    pub laser_player: Handle<Image>,
+    pub laser_enemy: Handle<Image>,
 }
 
 #[derive(Resource)]
-pub struct GameState {
-    pub is_debug: bool,
+pub struct AudioAssets {
+    pub player_shoot: Handle<AudioSource>,
+    pub enemy_shoot: Handle<AudioSource>,
+    pub hit: Handle<AudioSource>,
+    pub explosion: Handle<AudioSource>,
+    pub death: Handle<AudioSource>,
+    pub powerup: Handle<AudioSource>,
+    pub gold: Handle<AudioSource>,
 }
 
 #[derive(Resource)]
@@ -22,9 +30,15 @@ impl WindowSize {
     }
 }
 
+// TODO: remove this
+#[derive(Resource)]
+pub struct GameState {
+    pub is_debug: bool,
+}
+
 impl GameState {
     //pub fn set_debug(&mut self, is_debug: bool) {
-        //self.is_debug = is_debug;
+    //self.is_debug = is_debug;
     //}
 }
 

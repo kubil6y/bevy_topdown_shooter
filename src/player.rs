@@ -19,15 +19,18 @@ fn spawn_player_system(
     window_size: Res<WindowSize>,
 ) {
     let (px, py) = (0., -window_size.height * 3. / 4.);
-    // spawn player
     commands.spawn((
         SpriteBundle {
             texture: game_textures.player.clone(),
-            transform: Transform::from_translation(Vec3::new(px, py, 99.)),
+            transform: Transform {
+                translation: Vec3::new(px, py, 99.),
+                scale: Vec3::new(SPRITE_SCALE, SPRITE_SCALE, 1.),
+                ..default()
+            },
             ..default()
         },
         Player,
-        //Movable::default(),
+        Collision::from(SIZE_PLAYER_SHIP),
         Velocity::default(),
     ));
 }
@@ -73,23 +76,53 @@ fn player_movement_system(
             tf.translation.y + velocity.0.y * time.delta_seconds() * BASE_SPEED;
         tf.translation.y = f32::clamp(
             new_y,
-            -window_size.height / 2. + SIZE_PLAYER_SHIP.1 / 2.,
-            -window_size.height / 4.,
+            -window_size.height / 2. + SIZE_PLAYER_SHIP.1 / 2. * SPRITE_SCALE,
+            -window_size.height / 6.,
         );
 
         // handle horizontal movement
         tf.translation.x += velocity.0.x * BASE_SPEED * time.delta_seconds();
-        if tf.translation.x - SIZE_PLAYER_SHIP.0 >= window_size.width / 2. {
+        if tf.translation.x - SIZE_PLAYER_SHIP.0 * SPRITE_SCALE
+            >= window_size.width / 2.
+        {
             tf.translation.x = -window_size.width / 2.;
         }
-        if tf.translation.x + SIZE_PLAYER_SHIP.0 <= -window_size.width / 2. {
+        if tf.translation.x + SIZE_PLAYER_SHIP.0 * SPRITE_SCALE
+            <= -window_size.width / 2.
+        {
             tf.translation.x = window_size.width / 2.;
         }
     }
 }
 
-fn spawn_player_laser_system(mut events: EventReader<PlayerLaserFireEvent>) {
+fn spawn_player_laser_system(
+    mut commands: Commands,
+    mut events: EventReader<PlayerLaserFireEvent>,
+    audio_assets: Res<AudioAssets>,
+    game_textures: Res<GameTextures>,
+    audio: Res<Audio>,
+) {
     for event in events.iter() {
-        println!("laser fired {:?}", event);
+        audio.play(audio_assets.player_shoot.clone());
+        let (laser_x, laser_y) = (
+            event.0.x,
+            event.0.y + (SIZE_PLAYER_SHIP.1 / 2. * SPRITE_SCALE) + 1.,
+        );
+        commands.spawn((
+            SpriteBundle {
+                texture: game_textures.laser_player.clone(),
+                transform: Transform {
+                    translation: Vec3::new(laser_x, laser_y, 1.),
+                    scale: Vec3::new(SPRITE_SCALE, SPRITE_SCALE, 1.),
+                    ..default()
+                },
+                ..default()
+            },
+            Laser,
+            FromPlayer,
+            Movable { auto_despawn: true },
+            Collision::from(SIZE_LASER_PLAYER),
+            Velocity(Vec2::new(0., 1.)),
+        ));
     }
 }
