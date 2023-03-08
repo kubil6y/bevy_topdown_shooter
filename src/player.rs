@@ -23,7 +23,8 @@ impl Plugin for PlayerPlugin {
             .add_system(handle_wave_complete_event_system)
             .add_system(log_player_state)
             .add_event::<WaveCompleteEvent>()
-            .add_event::<PlayerLaserFireEvent>();
+            .add_event::<PlayerLaserFireEvent>()
+            .add_event::<PlayerDeathEvent>();
     }
 }
 
@@ -242,10 +243,10 @@ fn handle_player_take_hit_event(
                 audio.play(audio_assets.death.clone());
                 player_state.death_sound_played = true;
                 if let Ok((entity, mut tf)) = query.get_single_mut() {
-                    explosion_event.send(ExplosionEvent(Vec2::new(
-                        tf.translation.x,
-                        tf.translation.y,
-                    )));
+                    explosion_event.send(ExplosionEvent {
+                        position: Vec2::new(tf.translation.x, tf.translation.y),
+                        with_sound: true,
+                    });
 
                     let (px, py) = (0., -window_size.height * 1. / 4.);
                     tf.translation = Vec3::new(px, py, 99.);
@@ -272,5 +273,5 @@ fn handle_wave_complete_event_system(
 }
 
 fn log_player_state(player_state: Res<PlayerState>) {
-    println!("{:?}", player_state);
+    //println!("{:?}", player_state);
 }

@@ -2,6 +2,9 @@ use bevy::prelude::*;
 
 use crate::prelude::{BASE_SPEED, ENEMY_BASE_FIRE_RATE, ENEMY_BASE_VELOCITY};
 
+#[derive(Resource)]
+pub struct BackgroundSpeed(pub f32);
+
 #[derive(Resource, Debug)]
 pub struct PlayerState {
     pub health: i32,
@@ -100,6 +103,7 @@ pub struct GameTextures {
     pub laser_player: Handle<Image>,
     pub laser_enemy: Handle<Image>,
     pub enemy: Handle<Image>,
+    pub background: Handle<Image>,
     pub explosion: Handle<TextureAtlas>,
 }
 
@@ -123,22 +127,5 @@ pub struct WindowSize {
 impl WindowSize {
     pub fn new(width: f32, height: f32) -> Self {
         Self { width, height }
-    }
-}
-
-#[derive(Resource)]
-pub struct GameState {
-    pub is_debug: bool,
-}
-
-impl GameState {
-    //pub fn set_debug(&mut self, is_debug: bool) {
-    //self.is_debug = is_debug;
-    //}
-}
-
-impl Default for GameState {
-    fn default() -> Self {
-        Self { is_debug: true }
     }
 }

@@ -10,6 +10,9 @@ pub struct Player;
 pub struct Enemy;
 
 #[derive(Component)]
+pub struct Background;
+
+#[derive(Component)]
 pub struct Laser;
 
 #[derive(Component)]

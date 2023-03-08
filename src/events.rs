@@ -13,7 +13,14 @@ pub struct PlayerTakeHitEvent;
 pub struct EnemyTakeHitEvent(pub Entity, pub Vec3);
 
 #[derive(Debug)]
-pub struct ExplosionEvent(pub Vec2);
+//pub struct ExplosionEvent(pub Vec2);
+pub struct ExplosionEvent {
+    pub position: Vec2,
+    pub with_sound: bool,
+}
 
 #[derive(Default)]
 pub struct WaveCompleteEvent;
+
+#[derive(Default)]
+pub struct PlayerDeathEvent;

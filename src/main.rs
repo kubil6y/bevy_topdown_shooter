@@ -1,9 +1,11 @@
 use crate::prelude::*;
+use background::BackgroundPlugin;
 use bevy::prelude::*;
 use enemy::EnemyPlugin;
 use player::PlayerPlugin;
 
 mod components;
+mod background;
 mod constants;
 mod enemy;
 mod events;
@@ -18,8 +20,8 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "Topdown Shooter".to_owned(),
-                height: 600.,
-                width: 400.,
+                height: WINDOW_HEIGHT,
+                width: WINDOW_WIDTH,
                 ..default()
             },
             ..default()
@@ -30,6 +32,7 @@ fn main() {
         )
         .add_plugin(EnemyPlugin)
         .add_plugin(PlayerPlugin)
+        .add_plugin(BackgroundPlugin)
         .add_plugin(SharedPlugin)
         .run();
 }
@@ -41,7 +44,6 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     commands.spawn(Camera2dBundle::default());
-    commands.insert_resource(GameState::default());
 
     // get window size as resource
     let window = windows.get_primary_mut().expect("no window :D?");
@@ -66,6 +68,7 @@ fn setup(
         laser_player: asset_server.load(SPRITE_LASER_PLAYER),
         laser_enemy: asset_server.load(SPRITE_LASER_ENEMY),
         enemy: asset_server.load(SPRITE_ENEMY_SHIP),
+        background: asset_server.load(SPRITE_BACKGROUND),
         explosion,
     };
     commands.insert_resource(game_textures);

@@ -60,7 +60,11 @@ fn handle_explosion_event_system(
             SpriteSheetBundle {
                 texture_atlas: game_textures.explosion.clone(),
                 transform: Transform {
-                    translation: Vec3::new(event.0.x, event.0.y, 1.),
+                    translation: Vec3::new(
+                        event.position.x,
+                        event.position.y,
+                        1.,
+                    ),
                     scale: Vec3::new(SPRITE_SCALE, SPRITE_SCALE, 1.),
                     ..default()
                 },

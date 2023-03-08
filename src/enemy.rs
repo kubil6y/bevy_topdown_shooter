@@ -201,7 +201,10 @@ fn handle_enemy_take_hit_system(
             continue;
         }
 
-        explosion_event.send(ExplosionEvent(Vec2::new(event.1.x, event.1.y)));
+        explosion_event.send(ExplosionEvent {
+            position: Vec2::new(event.1.x, event.1.y),
+            with_sound: true,
+        });
         enemy_count.0 -= 1;
         player_state.increment_score();
 
