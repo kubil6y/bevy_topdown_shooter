@@ -18,6 +18,7 @@ impl Plugin for PlayerPlugin {
             .add_system(player_input_system)
             .add_system(spawn_player_laser_system)
             .add_system(player_laser_hit_enemies)
+            .add_system(player_enemy_collision_system)
             .add_system(handle_player_take_hit_event)
             .add_system(handle_wave_complete_event_system)
             .add_system(log_player_state)
@@ -158,43 +159,6 @@ fn spawn_player_laser_system(
     }
 }
 
-fn handle_player_take_hit_event(
-    mut commands: Commands,
-    mut player_state: ResMut<PlayerState>,
-    mut enemy_attrs: ResMut<EnemyAttributes>,
-    mut take_hit_events: EventReader<PlayerTakeHitEvent>,
-    mut explosion_event: EventWriter<ExplosionEvent>,
-    mut query: Query<(Entity, &mut Transform), With<Player>>,
-    window_size: Res<WindowSize>,
-    audio_assets: Res<AudioAssets>,
-    audio: Res<Audio>,
-) {
-    for _ in take_hit_events.iter() {
-        player_state.decrement_health();
-
-        if player_state.is_alive {
-            audio.play(audio_assets.hit.clone());
-        } else {
-            if !player_state.death_sound_played {
-                audio.play(audio_assets.death.clone());
-                player_state.death_sound_played = true;
-                if let Ok((entity, mut tf)) = query.get_single_mut() {
-                    explosion_event.send(ExplosionEvent(Vec2::new(
-                        tf.translation.x,
-                        tf.translation.y,
-                    )));
-
-                    let (px, py) = (0., -window_size.height * 1. / 4.);
-                    tf.translation = Vec3::new(px, py, 99.);
-                    commands.entity(entity).despawn_recursive();
-                    player_state.is_alive = false;
-                    enemy_attrs.reset();
-                }
-            }
-        }
-    }
-}
-
 fn player_laser_hit_enemies(
     mut commands: Commands,
     mut hit_enemy_event: EventWriter<EnemyTakeHitEvent>,
@@ -231,6 +195,68 @@ fn player_laser_hit_enemies(
     }
 }
 
+fn player_enemy_collision_system(
+    mut player_take_hit_event: EventWriter<PlayerTakeHitEvent>,
+    mut enemy_take_hit_event: EventWriter<EnemyTakeHitEvent>,
+    query_enemies: Query<(Entity, &Transform, &Collision), With<Enemy>>,
+    query_player: Query<(&Transform, &Collision), With<Player>>,
+) {
+    let player = query_player.get_single();
+    if let Ok((player_tf, player_size)) = player {
+        for (enemy_entity, enemy_tf, enemy_size) in query_enemies.iter() {
+            let collision = collide(
+                player_tf.translation,
+                player_size.0,
+                enemy_tf.translation,
+                enemy_size.0,
+            );
+            if collision.is_some() {
+                player_take_hit_event.send_default();
+                enemy_take_hit_event.send(EnemyTakeHitEvent(
+                    enemy_entity,
+                    enemy_tf.translation,
+                ));
+            }
+        }
+    }
+}
+
+fn handle_player_take_hit_event(
+    mut commands: Commands,
+    mut player_state: ResMut<PlayerState>,
+    mut enemy_attrs: ResMut<EnemyAttributes>,
+    mut take_hit_events: EventReader<PlayerTakeHitEvent>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
+    mut query: Query<(Entity, &mut Transform), With<Player>>,
+    window_size: Res<WindowSize>,
+    audio_assets: Res<AudioAssets>,
+    audio: Res<Audio>,
+) {
+    for _ in take_hit_events.iter() {
+        player_state.decrement_health();
+
+        if player_state.is_alive {
+            audio.play(audio_assets.hit.clone());
+        } else {
+            if !player_state.death_sound_played {
+                audio.play(audio_assets.death.clone());
+                player_state.death_sound_played = true;
+                if let Ok((entity, mut tf)) = query.get_single_mut() {
+                    explosion_event.send(ExplosionEvent(Vec2::new(
+                        tf.translation.x,
+                        tf.translation.y,
+                    )));
+
+                    let (px, py) = (0., -window_size.height * 1. / 4.);
+                    tf.translation = Vec3::new(px, py, 99.);
+                    commands.entity(entity).despawn_recursive();
+                    player_state.is_alive = false;
+                    enemy_attrs.reset();
+                }
+            }
+        }
+    }
+}
 fn handle_wave_complete_event_system(
     mut events: EventReader<WaveCompleteEvent>,
     mut enemy_attrs: ResMut<EnemyAttributes>,

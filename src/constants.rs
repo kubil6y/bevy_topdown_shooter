@@ -8,7 +8,7 @@ pub const UPGRADE_ENEMY_KILL_COUNT: i32 = 10;
 pub const ENEMY_LASER_SPEED_MULTIPLIER: f32 = 1.5;
 
 pub const ENEMY_BASE_VELOCITY: Vec2 = Vec2::new(0., -0.3);
-pub const ENEMY_BASE_FIRE_RATE: f64 = 1. / 60.;
+pub const ENEMY_BASE_FIRE_RATE: f64 = 1. / 80.;
 
 pub const SPRITE_SCALE: f32 = 1.;
 pub const SPRITE_PLAYER_SHIP: &str = "ships/6.png";

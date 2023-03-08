@@ -23,6 +23,7 @@ impl Plugin for EnemyPlugin {
                     .with_run_criteria(enemy_fire_criteria)
                     .with_system(enemy_fire_system),
             )
+            .add_system(enemy_laser_hit_player_system)
             .add_system(handle_enemy_out_of_bounds_system)
             .add_system(handle_enemy_take_hit_system)
             .add_event::<EnemyLaserFireEvent>()
@@ -135,6 +136,37 @@ fn enemy_fire_system(
                 ENEMY_LASER_SPEED_MULTIPLIER * enemy_attrs.velocity.y,
             )),
         ));
+    }
+}
+
+fn enemy_laser_hit_player_system(
+    mut commands: Commands,
+    mut player_take_hit_event: EventWriter<PlayerTakeHitEvent>,
+    query_lasers: Query<
+        (Entity, &Transform, &Collision),
+        (With<Laser>, With<FromEnemy>),
+    >,
+    query_player: Query<(&Transform, &Collision), With<Player>>,
+) {
+    let mut despawned: HashSet<Entity> = HashSet::new();
+    let player = query_player.get_single();
+    if let Ok((player_tf, player_size)) = player {
+        for (laser_entity, laser_tf, laser_size) in query_lasers.iter() {
+            if despawned.contains(&laser_entity) {
+                continue;
+            }
+            let collision = collide(
+                player_tf.translation,
+                player_size.0,
+                laser_tf.translation,
+                laser_size.0,
+            );
+            if collision.is_some() {
+                player_take_hit_event.send_default();
+                commands.entity(laser_entity).despawn_recursive();
+                despawned.insert(laser_entity);
+            }
+        }
     }
 }
 
