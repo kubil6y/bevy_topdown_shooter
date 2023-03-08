@@ -34,3 +34,4 @@ pub const AUDIO_EXPLOSION: &str = "audio/explosion.ogg";
 pub const AUDIO_DEATH: &str = "audio/death.ogg";
 pub const AUDIO_POWERUP: &str = "audio/powerup.ogg";
 pub const AUDIO_GOLD: &str = "audio/gold.ogg";
+pub const THEME_SONG: &str = "music/1.ogg";

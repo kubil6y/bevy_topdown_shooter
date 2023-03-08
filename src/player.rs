@@ -1,8 +1,7 @@
+use std::collections::HashSet;
+
 use crate::prelude::*;
-use bevy::{
-    prelude::*, sprite::collide_aabb::collide, time::FixedTimestep,
-    utils::HashSet,
-};
+use bevy::{prelude::*, sprite::collide_aabb::collide, time::FixedTimestep};
 
 pub struct PlayerPlugin;
 
@@ -21,7 +20,7 @@ impl Plugin for PlayerPlugin {
             .add_system(player_enemy_collision_system)
             .add_system(handle_player_take_hit_event)
             .add_system(handle_wave_complete_event_system)
-            .add_system(log_player_state)
+            .add_system(handle_player_death_event_system)
             .add_event::<WaveCompleteEvent>()
             .add_event::<PlayerLaserFireEvent>()
             .add_event::<PlayerDeathEvent>();
@@ -68,20 +67,27 @@ fn player_input_system(
     }
 
     if let Ok((mut velocity, tf)) = query.get_single_mut() {
-        velocity.0.x = if keyboard.pressed(KeyCode::S) {
+        velocity.0.x = if keyboard.pressed(KeyCode::S)
+            || keyboard.pressed(KeyCode::Left)
+        {
             -1.
-        } else if keyboard.pressed(KeyCode::F) {
+        } else if keyboard.pressed(KeyCode::F)
+            || keyboard.pressed(KeyCode::Right)
+        {
             1.
         } else {
             0.
         };
-        velocity.0.y = if keyboard.pressed(KeyCode::E) {
-            1.
-        } else if keyboard.pressed(KeyCode::D) {
-            -1.
-        } else {
-            0.
-        };
+        velocity.0.y =
+            if keyboard.pressed(KeyCode::E) || keyboard.pressed(KeyCode::Up) {
+                1.
+            } else if keyboard.pressed(KeyCode::D)
+                || keyboard.pressed(KeyCode::Down)
+            {
+                -1.
+            } else {
+                0.
+            };
         if keyboard.just_pressed(KeyCode::Space) {
             let offset = Vec2::new(
                 tf.translation.x,
@@ -228,6 +234,7 @@ fn handle_player_take_hit_event(
     mut enemy_attrs: ResMut<EnemyAttributes>,
     mut take_hit_events: EventReader<PlayerTakeHitEvent>,
     mut explosion_event: EventWriter<ExplosionEvent>,
+    mut player_death_event: EventWriter<PlayerDeathEvent>,
     mut query: Query<(Entity, &mut Transform), With<Player>>,
     window_size: Res<WindowSize>,
     audio_assets: Res<AudioAssets>,
@@ -253,6 +260,7 @@ fn handle_player_take_hit_event(
                     commands.entity(entity).despawn_recursive();
                     player_state.is_alive = false;
                     enemy_attrs.reset();
+                    player_death_event.send_default();
                 }
             }
         }
@@ -272,6 +280,43 @@ fn handle_wave_complete_event_system(
     }
 }
 
-fn log_player_state(player_state: Res<PlayerState>) {
-    //println!("{:?}", player_state);
+fn handle_player_death_event_system(
+    mut commands: Commands,
+    mut events: EventReader<PlayerDeathEvent>,
+    game_textures: Res<GameTextures>,
+    query_lasers: Query<Entity, With<Laser>>,
+    query_enemies: Query<(Entity, &Transform), With<Enemy>>,
+) {
+    for _ in events.iter() {
+        let mut entities: HashSet<Entity> = HashSet::new();
+        let mut explosions: Vec<Vec3> = Vec::with_capacity(24);
+
+        for (enemy_entity, enemy_tf) in query_enemies.iter() {
+            explosions.push(enemy_tf.translation);
+            entities.insert(enemy_entity);
+        }
+
+        for laser_entity in query_lasers.iter() {
+            entities.insert(laser_entity);
+        }
+
+        for explosion in explosions.iter() {
+            commands.spawn((
+                SpriteSheetBundle {
+                    texture_atlas: game_textures.explosion.clone(),
+                    transform: Transform {
+                        translation: Vec3::new(explosion.x, explosion.y, 1.),
+                        scale: Vec3::new(SPRITE_SCALE, SPRITE_SCALE, 1.),
+                        ..default()
+                    },
+                    ..default()
+                },
+                Explosion(Timer::from_seconds(0.05, TimerMode::Once)),
+            ));
+        }
+
+        for entity in entities {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
 }

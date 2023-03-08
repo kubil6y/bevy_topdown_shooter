@@ -82,6 +82,7 @@ fn setup(
         death: asset_server.load(AUDIO_DEATH),
         powerup: asset_server.load(AUDIO_POWERUP),
         gold: asset_server.load(AUDIO_GOLD),
+        theme_song: asset_server.load(THEME_SONG),
     };
     commands.insert_resource(audio_assets);
 }

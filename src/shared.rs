@@ -5,7 +5,8 @@ pub struct SharedPlugin;
 
 impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(movement_system)
+        app.add_startup_system(play_theme_song)
+            .add_system(movement_system)
             .add_system(auto_despawner_system)
             .add_system(handle_explosion_event_system)
             .add_system(explosion_animation_system)
@@ -93,4 +94,15 @@ fn explosion_animation_system(
             }
         }
     }
+}
+
+fn play_theme_song(audio_assets: Res<AudioAssets>, audio: Res<Audio>) {
+    audio.play_with_settings(
+        audio_assets.theme_song.clone(),
+        PlaybackSettings {
+            repeat: true,
+            volume: 0.331488,
+            ..default()
+        },
+    );
 }

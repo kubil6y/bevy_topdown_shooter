@@ -116,6 +116,7 @@ pub struct AudioAssets {
     pub death: Handle<AudioSource>,
     pub powerup: Handle<AudioSource>,
     pub gold: Handle<AudioSource>,
+    pub theme_song: Handle<AudioSource>,
 }
 
 #[derive(Resource)]
