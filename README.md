@@ -4,6 +4,8 @@ Built with Bevy 0.9. Heavily inspired by [Jeremy Chone](https://www.youtube.com/
 
 ESDF/Arrows to move, SPACE to shoot.
 
+[Example Gameplay @Youtube](https://www.youtube.com/watch?v=QF21VSngo-o)
+
 ```sh
 cargo build
 ```
