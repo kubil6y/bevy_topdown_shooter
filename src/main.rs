@@ -85,4 +85,9 @@ fn setup(
         theme_song: asset_server.load(THEME_SONG),
     };
     commands.insert_resource(audio_assets);
+
+    let font_assets = FontAssets {
+        ui: asset_server.load(GAME_FONT)
+    };
+    commands.insert_resource(font_assets);
 }

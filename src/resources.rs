@@ -108,6 +108,11 @@ pub struct GameTextures {
 }
 
 #[derive(Resource)]
+pub struct FontAssets {
+    pub ui: Handle<Font>,
+}
+
+#[derive(Resource)]
 pub struct AudioAssets {
     pub player_shoot: Handle<AudioSource>,
     pub enemy_shoot: Handle<AudioSource>,

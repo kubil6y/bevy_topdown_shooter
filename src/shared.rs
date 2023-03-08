@@ -6,6 +6,8 @@ pub struct SharedPlugin;
 impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(play_theme_song)
+            .add_startup_system(spawn_simple_ui_system)
+            .add_system(update_simple_ui_system)
             .add_system(movement_system)
             .add_system(auto_despawner_system)
             .add_system(handle_explosion_event_system)
@@ -105,4 +107,46 @@ fn play_theme_song(audio_assets: Res<AudioAssets>, audio: Res<Audio>) {
             ..default()
         },
     );
+}
+
+fn spawn_simple_ui_system(
+    mut commands: Commands,
+    font_assets: Res<FontAssets>,
+) {
+    commands.spawn((
+        // Create a TextBundle that has a Text with a single section.
+        TextBundle::from_section(
+            // Accepts a `String` or any type that converts into a `String`, such as `&str`
+            "HP: 0\nSCORE: 0\nLevel: 0",
+            TextStyle {
+                font: font_assets.ui.clone(),
+                font_size: 20.,
+                color: Color::WHITE,
+            },
+        ) // Set the alignment of the Text
+        .with_text_alignment(TextAlignment::CENTER_LEFT)
+        // Set the style of the TextBundle itself.
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                top: Val::Px(5.0),
+                left: Val::Px(10.0),
+                ..default()
+            },
+            ..default()
+        }),
+        UIFont,
+    ));
+}
+
+fn update_simple_ui_system(
+    mut query: Query<&mut Text, With<UIFont>>,
+    player_state: Res<PlayerState>,
+) {
+    for mut text in &mut query {
+        text.sections[0].value = format!(
+            "HP: {}\nSCORE: {}\nLevel: {}",
+            player_state.health, player_state.score, player_state.golds
+        );
+    }
 }

@@ -46,3 +46,6 @@ impl From<(f32, f32)> for Collision {
         Self(Vec2::new(value.0, value.1))
     }
 }
+
+#[derive(Component, Default)]
+pub struct UIFont;
