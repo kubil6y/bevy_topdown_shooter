@@ -2,7 +2,7 @@ use bevy::prelude::Color;
 
 pub const BACKGROUND_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const BASE_SPEED: f32 = 300.;
-pub const MAX_ENEMY_COUNT: i32 = 4;
+pub const MAX_ENEMY_COUNT: i32 = 20;
 pub const EXPLOSION_LENGTH: usize = 16;
 
 pub const SPRITE_SCALE: f32 = 1.;

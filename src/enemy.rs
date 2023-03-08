@@ -1,7 +1,11 @@
 use std::collections::HashSet;
 
 use crate::prelude::*;
-use bevy::{prelude::*, time::FixedTimestep};
+use bevy::{
+    prelude::*,
+    sprite::collide_aabb::collide,
+    time::FixedTimestep,
+};
 use rand::{thread_rng, Rng};
 
 pub struct EnemyPlugin;
@@ -23,23 +27,51 @@ impl Plugin for EnemyPlugin {
     }
 }
 
+fn get_random_enemy_position(
+    window_size: Vec2,
+    enemy_positions: &[Vec2],
+) -> (f32, f32) {
+    let mut rng = thread_rng();
+    let enemy_x = rng.gen_range(
+        (-window_size.x / 2. + SIZE_ENEMY_SHIP.0 / 2.)
+            ..(window_size.x / 2. - SIZE_ENEMY_SHIP.0 / 2.),
+    );
+    let enemy_y = (rng.gen_range(10..50) as f32) + window_size.y / 2.;
+    for enemy_pos in enemy_positions.iter() {
+        let collision = collide(
+            Vec3::new(enemy_pos.x, enemy_pos.y, 0.),
+            Vec2::from(SIZE_ENEMY_SHIP),
+            Vec3::new(enemy_x, enemy_y, 0.),
+            Vec2::from(SIZE_ENEMY_SHIP),
+        );
+        if collision.is_some() {
+            return get_random_enemy_position(window_size, &enemy_positions);
+        }
+    }
+    (enemy_x, enemy_y)
+}
+
 fn spawn_enemy_system(
     mut commands: Commands,
     mut enemy_count: ResMut<EnemyCount>,
     game_textures: Res<GameTextures>,
     window_size: Res<WindowSize>,
+    query: Query<&Transform, With<Enemy>>,
 ) {
     if enemy_count.0 >= MAX_ENEMY_COUNT {
         return;
     }
 
-    // generate random position for enemy
-    let mut rng = thread_rng();
-    let enemy_x = rng.gen_range(
-        (-window_size.width / 2. + SIZE_ENEMY_SHIP.0 / 2.)
-            ..(window_size.width / 2. - SIZE_ENEMY_SHIP.0 / 2.),
+    let mut enemy_positions: Vec<Vec2> = vec![];
+    for enemy_tf in query.iter() {
+        enemy_positions
+            .push(Vec2::new(enemy_tf.translation.x, enemy_tf.translation.y));
+    }
+
+    let (enemy_x, enemy_y) = get_random_enemy_position(
+        Vec2::new(window_size.width, window_size.height),
+        &enemy_positions,
     );
-    let enemy_y = (rng.gen_range(10..50) as f32) + window_size.height / 2.;
 
     commands.spawn((
         SpriteBundle {

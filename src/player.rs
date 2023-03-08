@@ -11,7 +11,7 @@ impl Plugin for PlayerPlugin {
         app.insert_resource(PlayerState::default())
             .add_system_set(
                 SystemSet::new()
-                    .with_run_criteria(FixedTimestep::step(0.5))
+                    .with_run_criteria(FixedTimestep::step(1.))
                     .with_system(spawn_player_system),
             )
             .add_system(player_movement_system)
@@ -154,6 +154,7 @@ fn handle_player_take_hit_event(
     mut commands: Commands,
     mut player_state: ResMut<PlayerState>,
     mut take_hit_events: EventReader<PlayerTakeHitEvent>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
     mut query: Query<(Entity, &mut Transform), With<Player>>,
     window_size: Res<WindowSize>,
     audio_assets: Res<AudioAssets>,
@@ -169,6 +170,11 @@ fn handle_player_take_hit_event(
                 audio.play(audio_assets.death.clone());
                 player_state.death_sound_played = true;
                 if let Ok((entity, mut tf)) = query.get_single_mut() {
+                    explosion_event.send(ExplosionEvent(Vec2::new(
+                        tf.translation.x,
+                        tf.translation.y,
+                    )));
+
                     let (px, py) = (0., -window_size.height * 1. / 4.);
                     tf.translation = Vec3::new(px, py, 99.);
                     commands.entity(entity).despawn_recursive();
@@ -194,6 +200,10 @@ fn player_laser_hit_enemies(
             continue;
         }
         for (e_entity, e_tf, e_size) in query_enemies.iter() {
+            if despawned.contains(&e_entity) || despawned.contains(&pl_entity) {
+                continue;
+            }
+
             let collision = collide(
                 pl_tf.translation,
                 pl_size.0,
@@ -203,6 +213,7 @@ fn player_laser_hit_enemies(
             if collision.is_some() {
                 commands.entity(pl_entity).despawn_recursive();
                 despawned.insert(pl_entity);
+                despawned.insert(e_entity);
                 hit_enemy_event
                     .send(EnemyTakeHitEvent(e_entity, e_tf.translation));
             }
