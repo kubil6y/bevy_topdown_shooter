@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::prelude::{BASE_SPEED, ENEMY_BASE_FIRE_RATE, ENEMY_BASE_VELOCITY};
+
 #[derive(Resource, Debug)]
 pub struct PlayerState {
     pub health: i32,
@@ -7,9 +9,16 @@ pub struct PlayerState {
     pub score: i32,
     pub is_alive: bool,
     pub death_sound_played: bool,
+    pub speed: f32,
 }
 
 impl PlayerState {
+    pub fn increment_health(&mut self) {
+        if self.is_alive && self.health < 3 {
+            self.health += 1;
+        }
+    }
+
     pub fn decrement_health(&mut self) {
         if self.is_alive {
             self.health -= 1;
@@ -24,6 +33,12 @@ impl PlayerState {
             is_alive: true,
             ..Default::default()
         }
+    }
+
+    pub fn upgrade(&mut self) {
+        self.speed += 0.10;
+        self.increment_health();
+        self.increment_gold();
     }
 
     pub fn die(&mut self) {
@@ -47,12 +62,37 @@ impl Default for PlayerState {
             golds: 0,
             score: 0,
             death_sound_played: false,
+            speed: BASE_SPEED,
         }
     }
 }
 
 #[derive(Resource)]
 pub struct EnemyCount(pub i32);
+
+#[derive(Resource)]
+pub struct EnemyAttributes {
+    pub fire_rate: f64,
+    pub velocity: Vec2,
+}
+
+impl EnemyAttributes {
+    pub fn reset(&mut self) {
+        *self = Default::default();
+    }
+    pub fn upgrade(&mut self) {
+        self.velocity = Vec2::new(self.velocity.x, self.velocity.y - 0.05);
+    }
+}
+
+impl Default for EnemyAttributes {
+    fn default() -> Self {
+        Self {
+            fire_rate: ENEMY_BASE_FIRE_RATE,
+            velocity: ENEMY_BASE_VELOCITY,
+        }
+    }
+}
 
 #[derive(Resource)]
 pub struct GameTextures {

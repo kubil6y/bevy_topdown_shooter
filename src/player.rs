@@ -19,7 +19,9 @@ impl Plugin for PlayerPlugin {
             .add_system(spawn_player_laser_system)
             .add_system(player_laser_hit_enemies)
             .add_system(handle_player_take_hit_event)
-            .add_system(log_player_state) // TODO REMOVE
+            .add_system(handle_wave_complete_event_system)
+            .add_system(log_player_state)
+            .add_event::<WaveCompleteEvent>()
             .add_event::<PlayerLaserFireEvent>();
     }
 }
@@ -91,12 +93,16 @@ fn player_input_system(
 fn player_movement_system(
     window_size: Res<WindowSize>,
     mut query: Query<(&mut Transform, &Velocity), With<Player>>,
+    player_state: Res<PlayerState>,
     time: Res<Time>,
 ) {
     for (mut tf, velocity) in query.iter_mut() {
         // handle vertical movement
-        let new_y =
-            tf.translation.y + velocity.0.y * time.delta_seconds() * BASE_SPEED;
+        //let new_y =
+        //tf.translation.y + velocity.0.y * time.delta_seconds() * BASE_SPEED;
+
+        let new_y = tf.translation.y
+            + velocity.0.y * time.delta_seconds() * player_state.speed;
         tf.translation.y = f32::clamp(
             new_y,
             -window_size.height / 2. + SIZE_PLAYER_SHIP.1 / 2. * SPRITE_SCALE,
@@ -104,7 +110,9 @@ fn player_movement_system(
         );
 
         // handle horizontal movement
-        tf.translation.x += velocity.0.x * BASE_SPEED * time.delta_seconds();
+        //tf.translation.x += velocity.0.x * BASE_SPEED * time.delta_seconds();
+        tf.translation.x +=
+            velocity.0.x * player_state.speed * time.delta_seconds();
         if tf.translation.x - SIZE_PLAYER_SHIP.0 * SPRITE_SCALE
             >= window_size.width / 2.
         {
@@ -153,6 +161,7 @@ fn spawn_player_laser_system(
 fn handle_player_take_hit_event(
     mut commands: Commands,
     mut player_state: ResMut<PlayerState>,
+    mut enemy_attrs: ResMut<EnemyAttributes>,
     mut take_hit_events: EventReader<PlayerTakeHitEvent>,
     mut explosion_event: EventWriter<ExplosionEvent>,
     mut query: Query<(Entity, &mut Transform), With<Player>>,
@@ -179,6 +188,7 @@ fn handle_player_take_hit_event(
                     tf.translation = Vec3::new(px, py, 99.);
                     commands.entity(entity).despawn_recursive();
                     player_state.is_alive = false;
+                    enemy_attrs.reset();
                 }
             }
         }
@@ -221,6 +231,20 @@ fn player_laser_hit_enemies(
     }
 }
 
+fn handle_wave_complete_event_system(
+    mut events: EventReader<WaveCompleteEvent>,
+    mut enemy_attrs: ResMut<EnemyAttributes>,
+    mut player_state: ResMut<PlayerState>,
+    audio_assets: Res<AudioAssets>,
+    audio: Res<Audio>,
+) {
+    for _ in events.iter() {
+        enemy_attrs.upgrade();
+        player_state.upgrade();
+        audio.play(audio_assets.powerup.clone());
+    }
+}
+
 fn log_player_state(player_state: Res<PlayerState>) {
-    //println!("{:?}", player_state);
+    println!("{:?}", player_state);
 }

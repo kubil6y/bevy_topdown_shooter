@@ -14,3 +14,6 @@ pub struct EnemyTakeHitEvent(pub Entity, pub Vec3);
 
 #[derive(Debug)]
 pub struct ExplosionEvent(pub Vec2);
+
+#[derive(Default)]
+pub struct WaveCompleteEvent;

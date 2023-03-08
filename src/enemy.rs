@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use crate::prelude::*;
 use bevy::{
-    prelude::*,
-    sprite::collide_aabb::collide,
+    ecs::schedule::ShouldRun, prelude::*, sprite::collide_aabb::collide,
     time::FixedTimestep,
 };
 use rand::{thread_rng, Rng};
@@ -13,12 +12,17 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(EnemyCount(0))
+            .insert_resource(EnemyAttributes::default())
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::step(1.))
                     .with_system(spawn_enemy_system),
             )
-            .add_system(spawn_enemy_laser_system)
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(enemy_fire_criteria)
+                    .with_system(enemy_fire_system),
+            )
             .add_system(handle_enemy_out_of_bounds_system)
             .add_system(handle_enemy_take_hit_system)
             .add_event::<EnemyLaserFireEvent>()
@@ -56,6 +60,7 @@ fn spawn_enemy_system(
     mut enemy_count: ResMut<EnemyCount>,
     game_textures: Res<GameTextures>,
     window_size: Res<WindowSize>,
+    enemy_attrs: Res<EnemyAttributes>,
     query: Query<&Transform, With<Enemy>>,
 ) {
     if enemy_count.0 >= MAX_ENEMY_COUNT {
@@ -86,13 +91,52 @@ fn spawn_enemy_system(
         Enemy,
         Collision::from(SIZE_ENEMY_SHIP),
         Movable { auto_despawn: true },
-        Velocity(Vec2::new(0., -0.1)), //  -.1
+        Velocity(enemy_attrs.velocity), //  -.1
     ));
 
     enemy_count.0 += 1;
 }
 
-fn spawn_enemy_laser_system() {}
+fn enemy_fire_criteria(enemy_attrs: Res<EnemyAttributes>) -> ShouldRun {
+    if rand::thread_rng().gen_bool(enemy_attrs.fire_rate) {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+fn enemy_fire_system(
+    mut commands: Commands,
+    enemy_attrs: Res<EnemyAttributes>,
+    game_textures: Res<GameTextures>,
+    query: Query<&Transform, With<Enemy>>,
+) {
+    for tf in query.iter() {
+        commands.spawn((
+            SpriteBundle {
+                texture: game_textures.laser_enemy.clone(),
+                transform: Transform {
+                    translation: Vec3::new(
+                        tf.translation.x,
+                        tf.translation.y,
+                        1.,
+                    ),
+                    scale: Vec3::new(SPRITE_SCALE, SPRITE_SCALE, 1.),
+                    ..default()
+                },
+                ..default()
+            },
+            Laser,
+            FromEnemy,
+            Movable { auto_despawn: true },
+            Collision::from(SIZE_LASER_ENEMY),
+            Velocity(Vec2::new(
+                0.,
+                ENEMY_LASER_SPEED_MULTIPLIER * enemy_attrs.velocity.y,
+            )),
+        ));
+    }
+}
 
 fn handle_enemy_out_of_bounds_system(
     mut commands: Commands,
@@ -116,15 +160,24 @@ fn handle_enemy_take_hit_system(
     mut enemy_count: ResMut<EnemyCount>,
     mut take_hit_events: EventReader<EnemyTakeHitEvent>,
     mut explosion_event: EventWriter<ExplosionEvent>,
+    mut player_state: ResMut<PlayerState>,
+    mut wave_complete_event: EventWriter<WaveCompleteEvent>,
 ) {
     let mut despawned: HashSet<Entity> = HashSet::new();
     for event in take_hit_events.iter() {
         if despawned.contains(&event.0) {
             continue;
         }
+
         explosion_event.send(ExplosionEvent(Vec2::new(event.1.x, event.1.y)));
-        commands.entity(event.0).despawn_recursive();
         enemy_count.0 -= 1;
+        player_state.increment_score();
+
+        if player_state.score % UPGRADE_ENEMY_KILL_COUNT == 0 {
+            wave_complete_event.send_default();
+        }
+
         despawned.insert(event.0);
+        commands.entity(event.0).despawn_recursive();
     }
 }

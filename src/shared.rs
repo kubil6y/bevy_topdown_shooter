@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashSet};
 
 pub struct SharedPlugin;
 
@@ -28,7 +28,11 @@ fn auto_despawner_system(
     query: Query<(Entity, &Transform, &Collision, &Movable), Without<Enemy>>,
     window_size: Res<WindowSize>,
 ) {
+    let mut despawned: HashSet<Entity> = HashSet::new();
     for (entity, tf, collision, movable) in query.iter() {
+        if despawned.contains(&entity) {
+            continue;
+        }
         if movable.auto_despawn
             && (tf.translation.x + collision.0.x / 2. > window_size.width / 2.
                 || tf.translation.x - collision.0.x / 2.
@@ -39,6 +43,7 @@ fn auto_despawner_system(
                     < -window_size.height / 2.)
         {
             commands.entity(entity).despawn_recursive();
+            despawned.insert(entity);
         }
     }
 }
